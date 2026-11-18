@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Training Dashboard 2021</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM (Stable 18) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Prop-types (Needed by Recharts UMD) -->
+    <script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+    <!-- Recharts (Stable) -->
+    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Mendapatkan komponen dari objek global Recharts
+        const { 
+            AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
+            Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell 
+        } = window.Recharts;
+
+        const { useState, useMemo } = React;
+
+        const rawData = [
+            { no: 1, tanggal: '2021-01-01', bulan: 'Jan', trainer: 'Chrisye', provinsi: 'Jawa Tengah', materi: 'Power BI', investasi: 2750000, cost: 1750000 },
+            { no: 2, tanggal: '2021-01-02', bulan: 'Jan', trainer: 'Cinta Laura', provinsi: 'Riau', materi: 'Excel', investasi: 2500000, cost: 1500000 },
+            { no: 3, tanggal: '2021-01-03', bulan: 'Jan', trainer: 'Rhoma Irama', provinsi: 'Jawa Tengah', materi: 'Power BI', investasi: 2750000, cost: 1750000 },
+            { no: 4, tanggal: '2021-01-04', bulan: 'Jan', trainer: 'Hetty Koes', provinsi: 'Jawa Timur', materi: 'Word', investasi: 2000000, cost: 1000000 },
+            { no: 5, tanggal: '2021-01-05', bulan: 'Jan', trainer: 'Ariel', provinsi: 'Kalimantan Timur', materi: 'PowerPoint', investasi: 2250000, cost: 1250000 },
+            { no: 6, tanggal: '2021-01-06', bulan: 'Jan', trainer: 'Hetty Koes', provinsi: 'Jawa Timur', materi: 'Word', investasi: 2000000, cost: 1000000 },
+            { no: 7, tanggal: '2021-01-07', bulan: 'Jan', trainer: 'Nicky Astria', provinsi: 'Riau', materi: 'Power BI', investasi: 2750000, cost: 1750000 },
+            { no: 8, tanggal: '2021-02-10', bulan: 'Feb', trainer: 'Chrisye', provinsi: 'Jawa Barat', materi: 'Excel', investasi: 2500000, cost: 1500000 },
+            { no: 9, tanggal: '2021-03-15', bulan: 'Mar', trainer: 'Ariel', provinsi: 'DKI Jakarta', materi: 'Power BI', investasi: 2750000, cost: 1750000 },
+            { no: 66, tanggal: '2021-10-03', bulan: 'Oct', trainer: 'Once', provinsi: 'Riau', materi: 'Excel', investasi: 2500000, cost: 1500000 },
+            { no: 67, tanggal: '2021-10-04', bulan: 'Oct', trainer: 'Rhoma Irama', provinsi: 'Jawa Tengah', materi: 'Power BI', investasi: 2750000, cost: 1750000 },
+            { no: 70, tanggal: '2021-10-07', bulan: 'Oct', trainer: 'Titiek Puspa', provinsi: 'DKI Jakarta', materi: 'Word', investasi: 2000000, cost: 1000000 },
+            { no: 71, tanggal: '2021-11-01', bulan: 'Nov', trainer: 'Gombloh', provinsi: 'Jawa Tengah', materi: 'Excel', investasi: 2500000, cost: 1500000 },
+        ];
+
+        const COLORS = ['#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+
+        const App = () => {
+            const [filterMateri, setFilterMateri] = useState('All');
+            const [filterTrainer, setFilterTrainer] = useState('All');
+            const [filterProvinsi, setFilterProvinsi] = useState('All');
+
+            const options = useMemo(() => ({
+                materi: ['All', ...new Set(rawData.map(d => d.materi))],
+                trainer: ['All', ...new Set(rawData.map(d => d.trainer))],
+                provinsi: ['All', ...new Set(rawData.map(d => d.provinsi))]
+            }), []);
+
+            const filteredData = useMemo(() => {
+                return rawData.filter(item => {
+                    return (filterMateri === 'All' || item.materi === filterMateri) &&
+                           (filterTrainer === 'All' || item.trainer === filterTrainer) &&
+                           (filterProvinsi === 'All' || item.provinsi === filterProvinsi);
+                });
+            }, [filterMateri, filterTrainer, filterProvinsi]);
+
+            const metrics = useMemo(() => {
+                const totalRevenue = filteredData.reduce((sum, item) => sum + item.investasi, 0);
+                const totalProfit = totalRevenue - filteredData.reduce((sum, item) => sum + item.cost, 0);
+                const marginPercent = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+
+                const provSummary = filteredData.reduce((acc, item) => {
+                    acc[item.provinsi] = (acc[item.provinsi] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const bulanOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const trendData = bulanOrder.map(b => {
+                    const d = filteredData.filter(x => x.bulan === b);
+                    return { name: b, revenue: d.reduce((s, i) => s + i.investasi, 0), profit: d.reduce((s, i) => s + (i.investasi - i.cost), 0) };
+                }).filter(x => x.revenue > 0);
+
+                return { 
+                    totalRevenue, totalProfit, marginPercent, 
+                    provData: Object.entries(provSummary).map(([name, value]) => ({ name, value })),
+                    trendData, totalSesi: filteredData.length 
+                };
+            }, [filteredData]);
+
+            const formatCurrency = (val) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val);
+
+            return (
+                <div className="p-4 md:p-8 max-w-7xl mx-auto">
+                    <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Financial Training Laporan</h1>
+                            <p className="text-slate-500 font-medium">Analisis Performa Penjualan & Profitabilitas</p>
+                        </div>
+                        <button onClick={() => {setFilterMateri('All'); setFilterTrainer('All'); setFilterProvinsi('All');}} className="bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition shadow-sm active:scale-95">Reset Filter</button>
+                    </header>
+
+                    {/* Filter Section */}
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {['Materi', 'Trainer', 'Provinsi'].map((key) => (
+                            <div key={key}>
+                                <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">{key}</label>
+                                <select 
+                                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer"
+                                    value={key === 'Materi' ? filterMateri : key === 'Trainer' ? filterTrainer : filterProvinsi}
+                                    onChange={(e) => {
+                                        const v = e.target.value;
+                                        if(key === 'Materi') setFilterMateri(v);
+                                        else if(key === 'Trainer') setFilterTrainer(v);
+                                        else setFilterProvinsi(v);
+                                    }}
+                                >
+                                    {options[key.toLowerCase()].map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                </select>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Stats Dashboard */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        {[
+                            { label: 'Revenue', value: formatCurrency(metrics.totalRevenue), color: 'text-blue-600', bg: 'bg-blue-50' },
+                            { label: 'Laba Kotor', value: formatCurrency(metrics.totalProfit), color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                            { label: 'Margin %', value: `${metrics.marginPercent.toFixed(1)}%`, color: 'text-amber-600', bg: 'bg-amber-50' },
+                            { label: 'Total Sesi', value: `${metrics.totalSesi} Sesi`, color: 'text-indigo-600', bg: 'bg-indigo-50' }
+                        ].map((s, i) => (
+                            <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                                <p className="text-[10px] font-black text-slate-400 uppercase mb-1 tracking-widest">{s.label}</p>
+                                <p className={`text-2xl font-black ${s.color} tracking-tight`}>{s.value}</p>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        {/* Trend Visualization */}
+                        <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                            <h3 className="font-bold text-slate-800 mb-8 flex items-center gap-2 italic">
+                                <span className="w-2 h-6 bg-blue-500 rounded-full"></span>
+                                Tren Pertumbuhan Bulanan
+                            </h3>
+                            <div className="h-80">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={metrics.trendData}>
+                                        <defs>
+                                            <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.2}/>
+                                                <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                                            </linearGradient>
+                                        </defs>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
+                                        <YAxis hide />
+                                        <Tooltip 
+                                            formatter={(val) => formatCurrency(val)} 
+                                            contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'}} 
+                                        />
+                                        <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#0ea5e9" fill="url(#colorRev)" strokeWidth={4} />
+                                        <Area type="monotone" dataKey="profit" name="Profit" stroke="#10b981" fill="transparent" strokeWidth={3} strokeDasharray="5 5" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Distribution Chart */}
+                        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                            <h3 className="font-bold text-slate-800 mb-8 flex items-center gap-2 italic">
+                                <span className="w-2 h-6 bg-rose-500 rounded-full"></span>
+                                Fokus Wilayah
+                            </h3>
+                            <div className="h-80">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie data={metrics.provData} cx="50%" cy="50%" innerRadius={70} outerRadius={90} paddingAngle={8} dataKey="value" stroke="none">
+                                            {metrics.provData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} cornerRadius={8} />)}
+                                        </Pie>
+                                        <Tooltip />
+                                        <Legend verticalAlign="bottom" iconType="circle" />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        {/* Detail Table */}
+                        <div className="lg:col-span-3 bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
+                                <h3 className="font-bold text-slate-800 tracking-tight text-lg">Log Sesi Terfilter</h3>
+                                <span className="bg-slate-200 text-slate-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{filteredData.length} Sesi</span>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead className="bg-slate-50/50 text-slate-400 font-black uppercase tracking-widest text-[10px]">
+                                        <tr>
+                                            <th className="p-6">Tanggal</th>
+                                            <th className="p-6">Trainer</th>
+                                            <th className="p-6">Materi</th>
+                                            <th className="p-6 text-right">Investasi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-50">
+                                        {filteredData.map((row, i) => (
+                                            <tr key={i} className="hover:bg-slate-50 transition-colors group">
+                                                <td className="p-6 text-slate-500 font-medium">{row.tanggal}</td>
+                                                <td className="p-6 font-bold text-slate-800">{row.trainer}</td>
+                                                <td className="p-6">
+                                                    <span className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                                        {row.materi}
+                                                    </span>
+                                                </td>
+                                                <td className="p-6 text-right font-mono font-bold text-slate-900">{formatCurrency(row.investasi)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
